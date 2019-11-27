@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/TESCandyland/static/css/main.20fc688d.chunk.css",
-    "main.js": "/TESCandyland/static/js/main.43226b73.chunk.js",
-    "main.js.map": "/TESCandyland/static/js/main.43226b73.chunk.js.map",
+    "main.js": "/TESCandyland/static/js/main.57544d48.chunk.js",
+    "main.js.map": "/TESCandyland/static/js/main.57544d48.chunk.js.map",
     "runtime-main.js": "/TESCandyland/static/js/runtime-main.8f3c2358.js",
     "runtime-main.js.map": "/TESCandyland/static/js/runtime-main.8f3c2358.js.map",
     "static/js/2.870d0343.chunk.js": "/TESCandyland/static/js/2.870d0343.chunk.js",
     "static/js/2.870d0343.chunk.js.map": "/TESCandyland/static/js/2.870d0343.chunk.js.map",
     "index.html": "/TESCandyland/index.html",
-    "precache-manifest.d2bdb0882d0c65e2a0ce6d93a56a4e96.js": "/TESCandyland/precache-manifest.d2bdb0882d0c65e2a0ce6d93a56a4e96.js",
+    "precache-manifest.6fa9a50897ba27a98e20c0678ca7cd53.js": "/TESCandyland/precache-manifest.6fa9a50897ba27a98e20c0678ca7cd53.js",
     "service-worker.js": "/TESCandyland/service-worker.js",
     "static/css/main.20fc688d.chunk.css.map": "/TESCandyland/static/css/main.20fc688d.chunk.css.map",
     "static/media/board.jpg": "/TESCandyland/static/media/board.e5b987bc.jpg",
@@ -21,6 +21,6 @@
     "static/js/runtime-main.8f3c2358.js",
     "static/js/2.870d0343.chunk.js",
     "static/css/main.20fc688d.chunk.css",
-    "static/js/main.43226b73.chunk.js"
+    "static/js/main.57544d48.chunk.js"
   ]
 }
