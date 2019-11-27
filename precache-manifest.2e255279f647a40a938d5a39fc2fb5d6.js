@@ -1,10 +1,10 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "6ef69c18d85a15f337821137c2f2222c",
+    "revision": "dd5bb220bde947367b26c658ac701a78",
     "url": "/TESCandyland/index.html"
   },
   {
-    "revision": "9d6f1e61112a364570df",
+    "revision": "682e34bf04631167550a",
     "url": "/TESCandyland/static/css/main.20fc688d.chunk.css"
   },
   {
@@ -12,8 +12,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/TESCandyland/static/js/2.870d0343.chunk.js"
   },
   {
-    "revision": "9d6f1e61112a364570df",
-    "url": "/TESCandyland/static/js/main.5d166d34.chunk.js"
+    "revision": "682e34bf04631167550a",
+    "url": "/TESCandyland/static/js/main.6345612e.chunk.js"
   },
   {
     "revision": "3269b2355248f4978c34",
