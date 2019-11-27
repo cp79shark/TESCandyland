@@ -164,12 +164,13 @@ const App: React.FC = () => {
           <a href="https://shop.hasbro.com/en-us/product/candy-land-game:C4E461C2-5056-9047-F5F7-F005920A3999">Candyland</a> is published by Hasbro. This is an educational parody/tool.
         </small>
       </h1>
-      <Router>
+      <Router basename={process.env.PUBLIC_URL}>
         <Switch>
-          <Route exact path="/">
+          <Route exact={true} path="/">
             <NewGame players={players} setPlayers={setPlayers} setPlayerCount={setPlayerCount} playerCount={playerCount}></NewGame>
           </Route>
           <Route path="/game">
+            <div>HI!</div>
             <Game winner={winner} currentPlayer={currentPlayer} gameOver={gameOver} drawCard={drawCard} players={players} playerCount={playerCount}></Game>
           </Route>
           <Route path="/gameover">
