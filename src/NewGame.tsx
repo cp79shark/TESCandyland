@@ -62,19 +62,19 @@ const NewGame: React.FC<NewGameProps> = (props) => {
             </div>
 
             <div className="form-field">
-                <label>Player 1 Name:</label>
+                <label className="player1color">Player 1 Name:</label>
                 <input type="text" name="player1name" id="0" value={players[0].name} onChange={updatePlayers}></input>
             </div>
             <div className="form-field">
-                <label>Player 2 Name:</label>
+                <label className="player2color">Player 2 Name:</label>
                 <input type="text" name="player2name" id="1" value={players[1].name} onChange={updatePlayers}></input>
             </div>
             <div className="form-field">
-                <label>Player 3 Name:</label>
+                <label className="player3color">Player 3 Name:</label>
                 <input type="text" disabled={playerCount < 3} id="2" name="player3name" value={players[2].name} onChange={updatePlayers}></input>
             </div>
             <div className="form-field">
-                <label>Player 4 Name:</label>
+                <label className="player4color">Player 4 Name:</label>
                 <input type="text" disabled={playerCount < 4} id="3" name="player4name" value={players[3].name} onChange={updatePlayers}></input>
             </div>
 
