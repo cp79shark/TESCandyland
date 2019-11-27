@@ -27,6 +27,7 @@ const App: React.FC = () => {
     { name: 'Player 3', position: -1, selectedCard: null },
     { name: 'Player 4', position: -1, selectedCard: null },
   ]);
+  const [playersReady, setPlayersReady] = useState(false);
 
   function movePlayer(_players: Array<Player>) {
     // find the next position for current player
@@ -154,6 +155,20 @@ const App: React.FC = () => {
     // since they only update players on the main page
     // we reset the winner in case they came from the game over page
     setWinner('');
+    setPlayersReady(false);
+  }
+
+  function newGameReset() {
+    _setPlayers([
+      { name: players[0].name, position: -1, selectedCard: null },
+      { name: players[1].name, position: -1, selectedCard: null },
+      { name: players[2].name, position: -1, selectedCard: null },
+      { name: players[3].name, position: -1, selectedCard: null },
+    ]);
+    // since they only update players on the main page
+    // we reset the winner in case they came from the game over page
+    setWinner('');
+    setCurrentPlayer(0);
   }
 
   return (
@@ -167,10 +182,9 @@ const App: React.FC = () => {
       <Router basename={process.env.PUBLIC_URL}>
         <Switch>
           <Route exact={true} path="/">
-            <NewGame players={players} setPlayers={setPlayers} setPlayerCount={setPlayerCount} playerCount={playerCount}></NewGame>
+            <NewGame players={players} playersReady={playersReady} newGameReset={newGameReset} setPlayers={setPlayers} setPlayerCount={setPlayerCount} playerCount={playerCount}></NewGame>
           </Route>
           <Route path="/game">
-            <div>HI!</div>
             <Game winner={winner} currentPlayer={currentPlayer} gameOver={gameOver} drawCard={drawCard} players={players} playerCount={playerCount}></Game>
           </Route>
           <Route path="/gameover">

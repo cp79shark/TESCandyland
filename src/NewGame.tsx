@@ -5,21 +5,19 @@ import { Player } from './constants_funcs';
 interface NewGameProps {
     players: Array<Player>,
     playerCount: number,
-    setPlayerCount: (count: number) => void;
-    setPlayers: (names: string[]) => void;
-    children?: ReactChild;
+    playersReady: boolean,
+    setPlayerCount: (count: number) => void,
+    setPlayers: (names: string[]) => void,
+    newGameReset: () => void,
+    children?: ReactChild,
 }
 
 const NewGame: React.FC<NewGameProps> = (props) => {
-    const [playersReady, setPlayersReady] = useState(false);
+    const [playersReady, setPlayersReady] = useState(props.playersReady);
     const [playerCount, _setPlayerCount] = useState(props.playerCount);
     const [players, setPlayers] = useState(props.players);
 
-    if (playersReady) {
-        return (<Redirect to="/game"></Redirect>);
-    }
-
-    function startGame(): void {
+    function resetPlayers() {
         const [player1, player2, player3, player4] = players;
 
         player1.position = 0;
@@ -28,7 +26,16 @@ const NewGame: React.FC<NewGameProps> = (props) => {
         player4.position = 0;
 
         setPlayers([player1, player2, player3, player4]);
+    }
+
+    function startGame(): void {
+        resetPlayers();
         setPlayersReady(true);
+    }
+
+    if (playersReady) {
+        props.newGameReset();
+        return (<Redirect to="/game"></Redirect>);
     }
 
     function updatePlayers(e: any) {

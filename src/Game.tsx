@@ -34,7 +34,7 @@ const Game: React.FunctionComponent<GameProps> =
                 <div className="board-container">
                     <img src={board} alt="" width="800" />
                     <div className="player-container">
-                        <button className="drawCard" disabled={props.winner !== ''} onClick={props.drawCard}>🎴 Draw Card</button>
+                        <button className="drawCard" disabled={!!props.winner} onClick={props.drawCard}>🎴 Draw Card</button>
                         <div className="player-card">
                             <h2 className="player1color">
                                 {myTurn(0)}
