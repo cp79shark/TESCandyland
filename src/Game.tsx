@@ -47,13 +47,13 @@ const Game: React.FunctionComponent<GameProps> =
                                 {props.players[1].name} (Square {props.players[1].position + 1})</h2>
                             <DrawnCard card={props.players[1].selectedCard}></DrawnCard>
                         </div>
-                        <div className="player-card" style={{ display: props.playerCount > 2 ? "block" : "none" }}>
+                        <div className="player-card" style={{ display: props.playerCount > 2 ? "inherit" : "none" }}>
                             <h2 className="player3color">
                                 {myTurn(2)}
                                 {props.players[2].name} (Square {props.players[2].position + 1})</h2>
                             <DrawnCard card={props.players[2].selectedCard}></DrawnCard>
                         </div>
-                        <div className="player-card" style={{ display: props.playerCount > 3 ? "block" : "none" }}>
+                        <div className="player-card" style={{ display: props.playerCount > 3 ? "inherit" : "none" }}>
                             <h2 className="player4color">
                                 {myTurn(3)}
                                 {props.players[3].name} (Square {props.players[3].position + 1})</h2>
@@ -62,8 +62,8 @@ const Game: React.FunctionComponent<GameProps> =
                     </div>
                     <img src={player1} id="player1" alt="" />
                     <img src={player2} id="player2" alt="" />
-                    <img src={player3} id="player3" style={{ display: props.playerCount > 2 ? "block" : "none" }} alt="" />
-                    <img src={player4} id="player4" style={{ display: props.playerCount > 3 ? "block" : "none" }} alt="" />
+                    <img src={player3} id="player3" style={{ display: props.playerCount > 2 ? "inherit" : "none" }} alt="" />
+                    <img src={player4} id="player4" style={{ display: props.playerCount > 3 ? "inherit" : "none" }} alt="" />
                 </div>
 
             </div>
