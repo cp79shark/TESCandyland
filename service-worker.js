@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/TESCandyland/precache-manifest.3109a8733aed21417d3171e6414c86cb.js"
+  "/TESCandyland/precache-manifest.3723893db16135006b76e40ee1e65bf4.js"
 );
 
 self.addEventListener('message', (event) => {
