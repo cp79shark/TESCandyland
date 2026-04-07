@@ -102,7 +102,7 @@ export default function DrawnCard({ card }: DrawnCardProps) {
       const timer = setTimeout(() => {
         setDisplayCard(card)
         setFlipped(true)
-      }, 50)
+      }, 120)
       return () => clearTimeout(timer)
     } else {
       setFlipped(false)
@@ -116,7 +116,7 @@ export default function DrawnCard({ card }: DrawnCardProps) {
     <div style={{ perspective: 600 }} className="w-20 h-28">
       <motion.div
         animate={{ rotateY: flipped ? 0 : 180 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
+        transition={{ duration: 1.2, ease: 'easeOut' }}
         style={{ transformStyle: 'preserve-3d', position: 'relative', width: '100%', height: '100%' }}
       >
         <div style={{ backfaceVisibility: 'hidden', position: 'absolute', width: '100%', height: '100%' }}>
