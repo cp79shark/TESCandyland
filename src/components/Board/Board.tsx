@@ -339,11 +339,20 @@ const STAGING_POSITIONS: [number, number][] = [
   [68, 963],   // Player 3 – bottom-right
 ]
 
+/** Walk-step interval thresholds (number of squares) */
+const SHORT_MOVE_THRESHOLD  = 15
+const MEDIUM_MOVE_THRESHOLD = 35
+
+/** Walk-step delays in milliseconds for each distance range */
+const SHORT_MOVE_DELAY_MS  = 130   // ≤15 squares — leisurely stroll
+const MEDIUM_MOVE_DELAY_MS = 65    // 16-35 squares — brisk walk
+const LONG_MOVE_DELAY_MS   = 28    // >35 squares  — sprint
+
 /** Walk-step interval in ms — shorter when the gap is large so the game stays snappy */
 function stepDelay(distance: number): number {
-  if (distance <= 15) return 130
-  if (distance <= 35) return 65
-  return 28
+  if (distance <= SHORT_MOVE_THRESHOLD)  return SHORT_MOVE_DELAY_MS
+  if (distance <= MEDIUM_MOVE_THRESHOLD) return MEDIUM_MOVE_DELAY_MS
+  return LONG_MOVE_DELAY_MS
 }
 
 // ─── Player Token ─────────────────────────────────────────────────────────────
@@ -450,6 +459,9 @@ function PlayerToken({
     return () => {
       if (stepTimerRef.current !== null) clearTimeout(stepTimerRef.current)
     }
+    // getCoords is a stable closure over `index` (never changes per token).
+    // dxRef is a mutable ref updated synchronously, so its current value is
+    // always fresh inside the setTimeout callback without needing to be a dep.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player.position])
 
@@ -460,6 +472,9 @@ function PlayerToken({
       motionX.set(x)
       motionY.set(y)
     }
+    // isWalking is read synchronously via setIsWalking callback below; player.position
+    // is not a dependency because this effect only runs to sync the idle position
+    // after the dx offset changes, not in response to movement.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dx, isWalking])
 
