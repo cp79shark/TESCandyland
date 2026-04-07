@@ -1,11 +1,11 @@
-import React from 'react'
+import { ReactNode } from 'react'
 import { motion } from 'framer-motion'
 
 interface ButtonProps {
   onClick?: () => void
   disabled?: boolean
   variant?: 'primary' | 'secondary' | 'danger'
-  children: React.ReactNode
+  children: ReactNode
   className?: string
   type?: 'button' | 'submit' | 'reset'
 }

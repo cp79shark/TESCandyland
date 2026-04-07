@@ -21,7 +21,7 @@ export default {
           '0%, 100%': { transform: 'translateY(0px)' },
           '50%': { transform: 'translateY(-8px)' },
         },
-        spin_slow: {
+        spinSlow: {
           from: { transform: 'rotate(0deg)' },
           to: { transform: 'rotate(360deg)' },
         },
@@ -32,7 +32,7 @@ export default {
       },
       animation: {
         float: 'float 3s ease-in-out infinite',
-        spin_slow: 'spin_slow 8s linear infinite',
+        spinSlow: 'spinSlow 8s linear infinite',
         candyfall: 'candyfall linear forwards',
       },
     },

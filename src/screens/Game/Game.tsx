@@ -1,4 +1,4 @@
-import React from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Board from '../../components/Board/Board'
@@ -18,7 +18,7 @@ interface GameProps {
 export default function Game({ players, playerCount, currentPlayer, winner, gameOver, drawCard }: GameProps) {
   const navigate = useNavigate()
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (gameOver) {
       navigate('/gameover')
     }

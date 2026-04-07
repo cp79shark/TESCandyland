@@ -1,4 +1,4 @@
-import React from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Button from '../../components/UI/Button'
@@ -12,7 +12,7 @@ interface GameOverProps {
 export default function GameOver({ winner, setGameOver }: GameOverProps) {
   const navigate = useNavigate()
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!winner) {
       navigate('/')
     }
