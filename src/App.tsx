@@ -5,6 +5,7 @@ import NewGame from './screens/NewGame/NewGame'
 import Game from './screens/Game/Game'
 import GameOver from './screens/GameOver/GameOver'
 import CandyParticles from './components/UI/CandyParticles'
+import CandyMusic from './components/UI/CandyMusic'
 
 export default function App() {
   const game = useGameState()
@@ -13,6 +14,7 @@ export default function App() {
     <Router basename="/TESCandyland">
       <div className="relative min-h-screen bg-gray-900 text-white">
         <CandyParticles count={12} />
+        <CandyMusic />
 
         <header className="relative z-10 text-center py-6 px-4">
           <motion.h1

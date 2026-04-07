@@ -17,10 +17,10 @@ interface BoardProps {
 }
 
 // ─── Visual constants ─────────────────────────────────────────────────────────
-const SQUARE_SIZE = 24
-const TOKEN_RADIUS = 10
+const SQUARE_SIZE = 34
+const TOKEN_RADIUS = 14
 /** Horizontal gap between tokens that share the same square */
-const MULTI_SPACING = TOKEN_RADIUS * 2.2
+const MULTI_SPACING = TOKEN_RADIUS * 2.5
 
 // Star field layout (pseudo-random distribution)
 const STAR_X_STRIDE = 79
@@ -36,11 +36,11 @@ const STAR_OPACITY_STEP = 0.05
 const FLOAT_BASE_DURATION = 2.4
 const FLOAT_DURATION_INC = 0.35
 const FLOAT_DELAY_INC = 0.7
-const FLOAT_AMPLITUDE = -7
+const FLOAT_AMPLITUDE = -10
 
 // Pulse ring animation for active player
-const PULSE_RING_MIN = TOKEN_RADIUS + 3
-const PULSE_RING_MAX = TOKEN_RADIUS + 9
+const PULSE_RING_MIN = TOKEN_RADIUS + 4
+const PULSE_RING_MAX = TOKEN_RADIUS + 11
 
 // ─── Candy-land zone regions (more visible borders + labels) ─────────────────
 const ZONES = [
@@ -197,50 +197,135 @@ function Sparkle({ x, y, size = 8, color = '#FFD700', delay = 0 }: {
   )
 }
 
-// ─── Candy token shapes ───────────────────────────────────────────────────────
-function CupcakeToken({ color }: { color: string }) {
+// ─── Candy token characters (expressive faces, distinct shapes) ───────────────
+
+/** Gingerbread person: frosting crown, big eyes, rosy cheeks, sweet smile */
+function GingerbreadToken({ color }: { color: string }) {
   return (
     <g>
-      <rect x={-8} y={-2} width={16} height={10} rx={2} fill={color} />
-      <ellipse cx={0} cy={-2} rx={9} ry={6} fill={color} />
-      <ellipse cx={0} cy={-5} rx={6} ry={4} fill="white" opacity={0.6} />
-      <rect x={-1} y={-10} width={2} height={6} fill="#FF69B4" />
-      <circle cx={0} cy={-11} r={2} fill="#FF4444" />
+      {/* Frosting crown */}
+      <path d="M-9,-13 L-6,-18 L-3,-14 L0,-20 L3,-14 L6,-18 L9,-13 Z"
+        fill="rgba(255,255,255,0.88)" stroke={color} strokeWidth={0.6} />
+      {/* Icing wavy collar */}
+      <path d="M-12,-1 Q-9,-3 -6,-1 M6,-1 Q9,-3 12,-1"
+        stroke="rgba(255,255,255,0.40)" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+      {/* Eyes */}
+      <circle cx={-4.8} cy={-4} r={3.4} fill="white" opacity={0.95} />
+      <circle cx={4.8}  cy={-4} r={3.4} fill="white" opacity={0.95} />
+      <circle cx={-4.8} cy={-4} r={1.9} fill="#2C1810" />
+      <circle cx={4.8}  cy={-4} r={1.9} fill="#2C1810" />
+      <circle cx={-3.8} cy={-4.9} r={0.9} fill="white" />
+      <circle cx={5.8}  cy={-4.9} r={0.9} fill="white" />
+      {/* Rosy cheeks */}
+      <circle cx={-7.5} cy={-0.5} r={3.2} fill="#FF69B4" opacity={0.50} />
+      <circle cx={7.5}  cy={-0.5} r={3.2} fill="#FF69B4" opacity={0.50} />
+      {/* Wide smile */}
+      <path d="M-5.5,2.5 Q0,7.5 5.5,2.5"
+        fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" />
+      {/* Icing buttons */}
+      <circle cx={0} cy={6}   r={1.6} fill="rgba(255,255,255,0.75)" />
+      <circle cx={0} cy={10}  r={1.4} fill="rgba(255,255,255,0.60)" />
     </g>
   )
 }
-function PopsicleToken({ color }: { color: string }) {
+
+/** Pre-calculated spoke endpoints for the peppermint swirl lines (angles 0°, 60°, 120°) */
+const PEPPERMINT_SPOKES = [0, 60, 120].map((deg) => {
+  const rad = deg * Math.PI / 180
+  return { x: Math.cos(rad) * 13, y: Math.sin(rad) * 13 }
+})
+
+/** Peppermint swirl character: star bow, swirl lines, eyelashes */
+function PeppermintToken({ color }: { color: string }) {
   return (
     <g>
-      <rect x={-2} y={2} width={4} height={9} rx={1} fill="#D2B48C" />
-      <rect x={-7} y={-10} width={14} height={14} rx={4} fill={color} />
-      <rect x={-7} y={-5} width={14} height={3} fill="rgba(255,255,255,0.25)" />
+      {/* Peppermint swirl lines on body */}
+      {PEPPERMINT_SPOKES.map(({ x, y }, i) => (
+        <path key={i}
+          d={`M0,0 L${x} ${y}`}
+          stroke="rgba(255,255,255,0.25)" strokeWidth={4} strokeLinecap="round" />
+      ))}
+      {/* Star accent at top */}
+      <text textAnchor="middle" y={-12} fontSize="11" opacity={0.90}>⭐</text>
+      {/* Eyes */}
+      <circle cx={-4.8} cy={-3} r={3.2} fill="white" opacity={0.95} />
+      <circle cx={4.8}  cy={-3} r={3.2} fill="white" opacity={0.95} />
+      <circle cx={-4.8} cy={-3} r={1.7} fill={color} />
+      <circle cx={4.8}  cy={-3} r={1.7} fill={color} />
+      <circle cx={-3.8} cy={-3.9} r={0.8} fill="white" />
+      <circle cx={5.8}  cy={-3.9} r={0.8} fill="white" />
+      {/* Eyelashes */}
+      <line x1={-7} y1={-5.5} x2={-6} y2={-4} stroke="white" strokeWidth={1} strokeLinecap="round" opacity={0.7} />
+      <line x1={-2.5} y1={-6.5} x2={-3} y2={-5} stroke="white" strokeWidth={1} strokeLinecap="round" opacity={0.7} />
+      {/* Cheeks */}
+      <circle cx={-7.5} cy={0.5} r={2.8} fill="#FFB6C1" opacity={0.55} />
+      <circle cx={7.5}  cy={0.5} r={2.8} fill="#FFB6C1" opacity={0.55} />
+      {/* Smile */}
+      <path d="M-5,2 Q0,6.5 5,2"
+        fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" />
     </g>
   )
 }
+
+/** Lollipop character: swirl body, bow accessory, playful wide smile */
 function LollipopToken({ color }: { color: string }) {
   return (
     <g>
-      <line x1={0} y1={5} x2={0} y2={11} stroke="#8B4513" strokeWidth={2} strokeLinecap="round" />
-      <circle cx={0} cy={-2} r={9} fill={color} />
-      <circle cx={0} cy={-2} r={5} fill="rgba(255,255,255,0.2)" />
-      <circle cx={-3} cy={-5} r={2} fill="rgba(255,255,255,0.35)" />
+      {/* Swirl on body */}
+      <path d="M0,-12 C6,-10 9,-4 5,0 C3,3 -3,3 -5,0 C-8,-6 0,-10 0,-12"
+        fill="none" stroke="rgba(255,255,255,0.30)" strokeWidth={3.5} strokeLinecap="round" />
+      {/* Bow/flower at top */}
+      <circle cx={0}  cy={-15} r={5.5} fill="rgba(255,255,255,0.75)" stroke={color} strokeWidth={0.8} />
+      <circle cx={0}  cy={-15} r={2.5} fill={color} opacity={0.8} />
+      <line x1={0} y1={-9.5} x2={0} y2={-12} stroke="rgba(255,255,255,0.60)" strokeWidth={1.5} />
+      {/* Eyes */}
+      <circle cx={-4.8} cy={-4} r={3.4} fill="white" opacity={0.95} />
+      <circle cx={4.8}  cy={-4} r={3.4} fill="white" opacity={0.95} />
+      <circle cx={-4.8} cy={-4} r={2.1} fill="#4B0082" />
+      <circle cx={4.8}  cy={-4} r={2.1} fill="#4B0082" />
+      <circle cx={-3.6} cy={-5} r={1.0} fill="white" />
+      <circle cx={6.0}  cy={-5} r={1.0} fill="white" />
+      {/* Cheeks */}
+      <circle cx={-7.5} cy={0} r={3} fill="#FF1493" opacity={0.42} />
+      <circle cx={7.5}  cy={0} r={3} fill="#FF1493" opacity={0.42} />
+      {/* Big open smile */}
+      <path d="M-5.5,2 Q0,7.5 5.5,2"
+        fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" />
     </g>
   )
 }
+
+/** Gummy bear: ears sticking above, muzzle, bear features */
 function GummyToken({ color }: { color: string }) {
   return (
     <g>
-      <ellipse cx={0} cy={2} rx={7} ry={9} fill={color} />
-      <ellipse cx={-4} cy={-6} rx={3.5} ry={4} fill={color} />
-      <ellipse cx={4} cy={-6} rx={3.5} ry={4} fill={color} />
-      <ellipse cx={0} cy={0} rx={4} ry={5} fill="rgba(255,255,255,0.2)" />
-      <circle cx={-2} cy={-2} r={1.5} fill="white" opacity={0.6} />
-      <circle cx={2} cy={-2} r={1.5} fill="white" opacity={0.6} />
+      {/* Ears (above the circle) */}
+      <circle cx={-8.5} cy={-13} r={6}   fill={color} stroke="rgba(255,255,255,0.35)" strokeWidth={1.2} />
+      <circle cx={8.5}  cy={-13} r={6}   fill={color} stroke="rgba(255,255,255,0.35)" strokeWidth={1.2} />
+      <circle cx={-8.5} cy={-13} r={3.5} fill="rgba(255,255,255,0.22)" />
+      <circle cx={8.5}  cy={-13} r={3.5} fill="rgba(255,255,255,0.22)" />
+      {/* Muzzle */}
+      <ellipse cx={0} cy={4.5} rx={5.5} ry={4} fill="rgba(255,255,255,0.22)" />
+      {/* Eyes */}
+      <circle cx={-5}  cy={-3} r={3.4} fill="white" opacity={0.95} />
+      <circle cx={5}   cy={-3} r={3.4} fill="white" opacity={0.95} />
+      <circle cx={-5}  cy={-3} r={1.9} fill="#1a0010" />
+      <circle cx={5}   cy={-3} r={1.9} fill="#1a0010" />
+      <circle cx={-4}  cy={-3.9} r={0.8} fill="white" />
+      <circle cx={6}   cy={-3.9} r={0.8} fill="white" />
+      {/* Nose */}
+      <ellipse cx={0} cy={2.5} rx={2.8} ry={1.8} fill="rgba(0,0,0,0.38)" />
+      {/* Smile */}
+      <path d="M-3,5.5 Q0,8 3,5.5"
+        fill="none" stroke="rgba(0,0,0,0.38)" strokeWidth={1.8} strokeLinecap="round" />
+      {/* Cheeks */}
+      <circle cx={-7.5} cy={1.5} r={2.8} fill="#FF69B4" opacity={0.38} />
+      <circle cx={7.5}  cy={1.5} r={2.8} fill="#FF69B4" opacity={0.38} />
     </g>
   )
 }
-const TOKEN_SHAPES = [CupcakeToken, PopsicleToken, LollipopToken, GummyToken]
+
+const TOKEN_SHAPES = [GingerbreadToken, PeppermintToken, LollipopToken, GummyToken]
 
 // ─── Player Token ─────────────────────────────────────────────────────────────
 function PlayerToken({
@@ -260,9 +345,9 @@ function PlayerToken({
   /** Vertical offset when sharing a square with other players */
   dy: number
 }) {
-  const sq = player.position >= 0 && player.position < boardMatrix.length
-    ? boardMatrix[player.position]
-    : null
+  // Show at START (boardMatrix[0]) when player hasn't moved yet (position = -1)
+  const displayPos = Math.max(0, player.position)
+  const sq = displayPos < boardMatrix.length ? boardMatrix[displayPos] : null
 
   // Centre on the square, then apply the sharing offset
   const targetX = sq ? sq.left + dx : -200
@@ -311,32 +396,35 @@ function PlayerToken({
           }}
         >
           {/* Drop shadow */}
-          <ellipse rx={TOKEN_RADIUS * 0.75} ry={3} cy={TOKEN_RADIUS + 1} fill="rgba(0,0,0,0.35)" />
+          <ellipse rx={TOKEN_RADIUS * 0.75} ry={4} cy={TOKEN_RADIUS + 2} fill="rgba(0,0,0,0.40)" />
 
           {/* Pulsing ring for active player */}
           {isCurrentPlayer && (
             <motion.circle
-              r={TOKEN_RADIUS + 5}
+              r={TOKEN_RADIUS + 6}
               fill="none"
               stroke={color}
-              strokeWidth={2.5}
+              strokeWidth={3}
               animate={{ opacity: [0.9, 0.1, 0.9], r: [PULSE_RING_MIN, PULSE_RING_MAX, PULSE_RING_MIN] }}
               transition={{ duration: 1.1, repeat: Infinity }}
             />
           )}
 
           {/* Token body */}
-          <circle r={TOKEN_RADIUS + 1} fill={color} opacity={0.85} />
-          <circle r={TOKEN_RADIUS + 1} fill="none" stroke="white" strokeWidth={1.5} opacity={0.5} />
+          <circle r={TOKEN_RADIUS + 2} fill={color} opacity={0.88} />
+          <circle r={TOKEN_RADIUS + 2} fill="none" stroke="white" strokeWidth={1.8} opacity={0.55} />
+          {/* Subtle bottom shadow for depth */}
+          <ellipse cx={0} cy={TOKEN_RADIUS * 0.7} rx={TOKEN_RADIUS * 0.8} ry={TOKEN_RADIUS * 0.25}
+            fill="rgba(0,0,0,0.25)" />
           <TokenShape color={color} />
 
-          {/* Player initial */}
+          {/* Player initial label below token */}
           <text
             textAnchor="middle" dominantBaseline="central"
-            fontSize="7" fill="white" fontWeight="bold"
-            y={TOKEN_RADIUS + 8}
+            fontSize="8" fill="white" fontWeight="bold"
+            y={TOKEN_RADIUS + 10}
             style={{ userSelect: 'none' }}
-            stroke="rgba(0,0,0,0.4)" strokeWidth={0.5} paintOrder="stroke"
+            stroke="rgba(0,0,0,0.5)" strokeWidth={0.6} paintOrder="stroke"
           >
             {player.name.charAt(0).toUpperCase()}
           </text>
@@ -350,17 +438,16 @@ function PlayerToken({
 export default function Board({ players, playerCount, currentPlayer }: BoardProps) {
   const endSq = boardMatrix[boardMatrix.length - 1]
 
-  // Build position→[playerIndexes] map so tokens on the same square spread horizontally
+  // Build position→[playerIndexes] so tokens on the same square spread horizontally
+  // Players at position -1 (pre-game) are treated as being at START (position 0)
   const squareGroups = new Map<number, number[]>()
   for (let i = 0; i < playerCount; i++) {
-    const pos = players[i].position
-    if (pos < 0) continue
+    const pos = Math.max(0, players[i].position)
     squareGroups.set(pos, [...(squareGroups.get(pos) ?? []), i])
   }
 
   function getOffset(playerIndex: number): { dx: number; dy: number } {
-    const pos = players[playerIndex].position
-    if (pos < 0) return { dx: 0, dy: 0 }
+    const pos = Math.max(0, players[playerIndex].position)
     const group = squareGroups.get(pos) ?? [playerIndex]
     const N = group.length
     const rank = group.indexOf(playerIndex)
@@ -376,8 +463,10 @@ export default function Board({ players, playerCount, currentPlayer }: BoardProp
         width={BOARD_WIDTH}
         height={BOARD_HEIGHT}
         viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
+        role="img"
+        aria-label="Candyland game board"
         style={{
-          background: 'linear-gradient(160deg, #0d1b2a 0%, #1a1035 35%, #0e2040 70%, #1a0820 100%)',
+          background: 'linear-gradient(160deg, #1a0030 0%, #2d0050 30%, #3a1060 60%, #1a0840 100%)',
           display: 'block',
         }}
         className="rounded-2xl shadow-2xl border-4 border-pink-500"
@@ -428,18 +517,21 @@ export default function Board({ players, playerCount, currentPlayer }: BoardProp
         <Gumdrop x={640} y={780} color="#FF69B4" r={12} />
         <Gumdrop x={80}  y={430} color="#00CED1" r={10} />
 
-        {/* ── Path glow ── */}
+        {/* ── Path glow (thicker candy road layers) ── */}
         <polyline points={pathPoints} fill="none"
-          stroke="rgba(255,255,255,0.05)" strokeWidth={30}
+          stroke="rgba(255,255,255,0.04)" strokeWidth={56}
           strokeLinejoin="round" strokeLinecap="round" />
         <polyline points={pathPoints} fill="none"
-          stroke="rgba(255,255,255,0.10)" strokeWidth={20}
+          stroke="rgba(255,255,255,0.07)" strokeWidth={42}
+          strokeLinejoin="round" strokeLinecap="round" />
+        <polyline points={pathPoints} fill="none"
+          stroke="rgba(255,255,255,0.12)" strokeWidth={28}
           strokeLinejoin="round" strokeLinecap="round" />
         {/* Candy-cane dashed accent */}
         <polyline points={pathPoints} fill="none"
-          stroke="rgba(255,68,68,0.15)" strokeWidth={8}
+          stroke="rgba(255,68,68,0.22)" strokeWidth={14}
           strokeLinejoin="round" strokeLinecap="round"
-          strokeDasharray="14 10" />
+          strokeDasharray="22 16" />
 
         {/* ── Slide/shortcut arrows ── */}
         {JUMP_CONNECTIONS.map(({ from, to }) => (
@@ -453,28 +545,32 @@ export default function Board({ players, playerCount, currentPlayer }: BoardProp
           const isEnd = sq.type === 'end'
           const isSpecial = Boolean(emoji) || isEnd
           const isJumpSource = sq.jumpTo !== undefined
-          const size = isEnd ? SQUARE_SIZE + 8 : isSpecial ? SQUARE_SIZE + 4 : SQUARE_SIZE
+          const size = isEnd ? SQUARE_SIZE + 10 : isSpecial ? SQUARE_SIZE + 5 : SQUARE_SIZE
+          const rx = isEnd ? size / 2 : isSpecial ? 9 : 6
           return (
             <g key={i} transform={`translate(${sq.left},${sq.top})`}>
               {(isSpecial || isJumpSource) && (
-                <circle r={size * 0.9} fill={color} opacity={isJumpSource ? 0.22 : 0.15} />
+                <circle r={size * 1.0} fill={color} opacity={isJumpSource ? 0.24 : 0.18} />
               )}
-              <rect
-                x={-size / 2} y={-size / 2} width={size} height={size}
-                rx={isEnd ? size / 2 : isSpecial ? 7 : 5}
-                fill={color}
-                stroke={isJumpSource ? 'white' : isSpecial ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)'}
-                strokeWidth={isJumpSource || isSpecial ? 2 : 1.2}
+              {/* Tile body */}
+              <rect x={-size / 2} y={-size / 2} width={size} height={size}
+                rx={rx} fill={color}
+                stroke={isJumpSource ? 'white' : isSpecial ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.38)'}
+                strokeWidth={isJumpSource || isSpecial ? 2.5 : 1.5}
               />
+              {/* Shine highlight — top arc, 3D candy tile look */}
+              <ellipse cx={0} cy={-size * 0.22} rx={size * 0.42} ry={size * 0.22}
+                fill="rgba(255,255,255,0.30)" />
+              {/* Emoji for special squares */}
               {emoji && (
-                <text textAnchor="middle" dominantBaseline="central" fontSize={isEnd ? 16 : 13}>{emoji}</text>
+                <text textAnchor="middle" dominantBaseline="central" fontSize={isEnd ? 18 : 15}>{emoji}</text>
               )}
               {isEnd && (
-                <text textAnchor="middle" dominantBaseline="central" fontSize={16}>🏆</text>
+                <text textAnchor="middle" dominantBaseline="central" fontSize={18}>🏆</text>
               )}
               {isJumpSource && (
-                <text textAnchor="middle" dominantBaseline="central" fontSize="9"
-                  y={size / 2 + 8} fill="white" opacity={0.9}>⚡</text>
+                <text textAnchor="middle" dominantBaseline="central" fontSize="10"
+                  y={size / 2 + 9} fill="white" opacity={0.9}>⚡</text>
               )}
             </g>
           )
