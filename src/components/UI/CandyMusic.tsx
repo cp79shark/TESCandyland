@@ -101,7 +101,12 @@ export default function CandyMusic() {
     const ctx = ctxRef.current
     if (ctx.state === 'suspended') await ctx.resume()
 
-      // Decode once and cache the AudioBuffer.
+    // Re-arm master gain (may have been silenced by stopPlayback)
+    const mg = masterGainRef.current!
+    mg.gain.cancelScheduledValues(ctx.currentTime)
+    mg.gain.setValueAtTime(1, ctx.currentTime)
+
+    // Decode once and cache the AudioBuffer.
       // Pass `raw` directly — decodeAudioData does not consume the ArrayBuffer in
       // modern browsers, and bufferRef caches the result so we never call it again.
       if (!bufferRef.current) {
@@ -121,6 +126,16 @@ export default function CandyMusic() {
     stopFlagRef.current.stopped = true
     stopPassRef.current?.()
     stopPassRef.current = null
+    // Silence ALL concurrent passes (each loop overlaps for CROSSFADE_S seconds,
+    // so there can be two active sources at once; only the first pass cleanup is
+    // stored in stopPassRef).  Zeroing the master gain mutes everything instantly.
+    const mg = masterGainRef.current
+    const ctx = ctxRef.current
+    if (mg && ctx) {
+      mg.gain.cancelScheduledValues(ctx.currentTime)
+      mg.gain.setValueAtTime(mg.gain.value, ctx.currentTime)
+      mg.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.05)  // 50 ms fade-out to avoid click
+    }
   }
 
   function toggle() {

@@ -355,6 +355,12 @@ function stepDelay(distance: number): number {
   return LONG_MOVE_DELAY_MS
 }
 
+/** Limb line dimensions (SVG user units, drawn from pivot at 0,0) */
+const ARM_DX = 8   // horizontal reach of each arm
+const ARM_DY = 14  // vertical drop  of each arm
+const LEG_DX = 4   // horizontal reach of each leg
+const LEG_DY = 14  // vertical drop  of each leg
+
 // ─── Player Token ─────────────────────────────────────────────────────────────
 function PlayerToken({
   player,
@@ -391,6 +397,53 @@ function PlayerToken({
 
   const scaleCtrl = useAnimation()
   const [isWalking, setIsWalking] = useState(false)
+
+  // ── limb refs — driven by rAF in the effect below ──────────────────────────
+  const leftArmRef  = useRef<SVGGElement>(null)
+  const rightArmRef = useRef<SVGGElement>(null)
+  const leftLegRef  = useRef<SVGGElement>(null)
+  const rightLegRef = useRef<SVGGElement>(null)
+
+  // ── limb animation via requestAnimationFrame ─────────────────────────────────
+  // We use SVG transform="rotate(angle, 0, 0)" on each limb group rather than
+  // Framer Motion rotate, because FM 11 CSS transforms rely on `transform-box:
+  // fill-box` computing a correct percentage origin for `<line>` fill-boxes —
+  // this is unreliable across browsers. SVG rotate(a,cx,cy) has an explicit pivot
+  // that is always exact.
+  useEffect(() => {
+    const reset = () => {
+      leftArmRef.current?.setAttribute('transform', '')
+      rightArmRef.current?.setAttribute('transform', '')
+      leftLegRef.current?.setAttribute('transform', '')
+      rightLegRef.current?.setAttribute('transform', '')
+    }
+
+    if (!isWalking) {
+      reset()
+      return
+    }
+
+    const PERIOD = 280  // ms per full arm-swing cycle
+    const start  = performance.now()
+    let frameId: number
+
+    const tick = () => {
+      const phase     = ((performance.now() - start) % PERIOD) / PERIOD  // 0..1
+      const armAngle  = Math.sin(phase * Math.PI * 2) * 42  // −42..+42°
+      const legAngle  = Math.sin((phase + 0.5) * Math.PI * 2) * 35  // out of phase
+      leftArmRef.current?.setAttribute('transform',  `rotate(${-armAngle},0,0)`)
+      rightArmRef.current?.setAttribute('transform', `rotate(${armAngle},0,0)`)
+      leftLegRef.current?.setAttribute('transform',  `rotate(${legAngle},0,0)`)
+      rightLegRef.current?.setAttribute('transform', `rotate(${-legAngle},0,0)`)
+      frameId = requestAnimationFrame(tick)
+    }
+
+    frameId = requestAnimationFrame(tick)
+    return () => {
+      cancelAnimationFrame(frameId)
+      reset()
+    }
+  }, [isWalking])
 
   // Mutable refs to avoid stale closures inside setTimeout callbacks
   const prevPosRef   = useRef(player.position)
@@ -493,7 +546,6 @@ function PlayerToken({
 
   const color      = PLAYER_COLORS[index]!
   const TokenShape = TOKEN_SHAPES[index]!
-  const walkSpeed  = isWalking ? { duration: 0.35, repeat: Infinity, ease: 'easeInOut' as const } : undefined
 
   return (
     <motion.g style={{ x: springX, y: springY }}>
@@ -512,67 +564,42 @@ function PlayerToken({
           {/* Drop shadow */}
           <ellipse rx={TOKEN_RADIUS * 0.75} ry={4} cy={TOKEN_RADIUS + 2} fill="rgba(0,0,0,0.40)" />
 
-          {/* ── Walking limbs (arms + legs) — rendered BEHIND body so body covers joints ── */}
-          {/*
-           * SVG rotation gotcha: Framer Motion computes transform-origin from its own
-           * `originX`/`originY` values (defaulting to 50%/50%) and silently overrides
-           * any `transformOrigin` CSS string set in `style`.
-           *
-           * Fix: wrap each limb in a static SVG <g> that translates the pivot point to
-           * (0, 0) of the group's coordinate space.  The inner motion.g then only needs
-           * originX/Y relative to the fill-box of its own <line>, which starts at (0,0).
-           *
-           *   Left-pointing limbs  (line 0,0 → −dx,dy):  fill-box right edge = x=0  → originX: 1
-           *   Right-pointing limbs (line 0,0 →  dx,dy):  fill-box left  edge = x=0  → originX: 0
-           *   Both:                                        fill-box top   edge = y=0  → originY: 0
-           */}
+          {/* ── Walking limbs (arms + legs) ─────────────────────────────────────── */}
+          {/* Each limb is a plain <g ref> inside a translate wrapper.  The rAF
+              effect above writes transform="rotate(angle, 0, 0)" on each ref,
+              which rotates around (0,0) in the translated group — exactly the
+              shoulder / hip pivot.  No CSS transform-origin needed. */}
 
           {/* Left arm — shoulder at (-(TOKEN_RADIUS+1), 0) */}
           <g transform={`translate(${-(TOKEN_RADIUS + 1)}, 0)`}>
-            <motion.g
-              style={{ transformBox: 'fill-box', originX: 1, originY: 0 }}
-              animate={isWalking ? { rotate: [-35, 35, -35] } : { rotate: 0 }}
-              transition={walkSpeed}
-            >
-              <line x1={0} y1={0} x2={-8} y2={13}
+            <g ref={leftArmRef}>
+              <line x1={0} y1={0} x2={-ARM_DX} y2={ARM_DY}
                 stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round" />
-            </motion.g>
+            </g>
           </g>
 
           {/* Right arm — shoulder at (TOKEN_RADIUS+1, 0) */}
           <g transform={`translate(${TOKEN_RADIUS + 1}, 0)`}>
-            <motion.g
-              style={{ transformBox: 'fill-box', originX: 0, originY: 0 }}
-              animate={isWalking ? { rotate: [35, -35, 35] } : { rotate: 0 }}
-              transition={walkSpeed}
-            >
-              <line x1={0} y1={0} x2={8} y2={13}
+            <g ref={rightArmRef}>
+              <line x1={0} y1={0} x2={ARM_DX} y2={ARM_DY}
                 stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round" />
-            </motion.g>
+            </g>
           </g>
 
           {/* Left leg — hip at (-5, TOKEN_RADIUS+2) */}
           <g transform={`translate(-5, ${TOKEN_RADIUS + 2})`}>
-            <motion.g
-              style={{ transformBox: 'fill-box', originX: 1, originY: 0 }}
-              animate={isWalking ? { rotate: [30, -30, 30] } : { rotate: 0 }}
-              transition={isWalking ? { ...walkSpeed, delay: 0.175 } : undefined}
-            >
-              <line x1={0} y1={0} x2={-4} y2={13}
+            <g ref={leftLegRef}>
+              <line x1={0} y1={0} x2={-LEG_DX} y2={LEG_DY}
                 stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round" />
-            </motion.g>
+            </g>
           </g>
 
           {/* Right leg — hip at (5, TOKEN_RADIUS+2) */}
           <g transform={`translate(5, ${TOKEN_RADIUS + 2})`}>
-            <motion.g
-              style={{ transformBox: 'fill-box', originX: 0, originY: 0 }}
-              animate={isWalking ? { rotate: [-30, 30, -30] } : { rotate: 0 }}
-              transition={isWalking ? { ...walkSpeed, delay: 0.175 } : undefined}
-            >
-              <line x1={0} y1={0} x2={4} y2={13}
+            <g ref={rightLegRef}>
+              <line x1={0} y1={0} x2={LEG_DX} y2={LEG_DY}
                 stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round" />
-            </motion.g>
+            </g>
           </g>
 
           {/* Pulsing ring for active player */}
