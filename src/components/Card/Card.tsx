@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useRef, useEffect } from 'react'
+import { motion, useAnimation } from 'framer-motion'
 import { Card as CardType, SQUARE_COLORS, SQUARE_EMOJIS } from '../../logic/constants'
 
 interface DrawnCardProps {
@@ -37,14 +37,8 @@ function CardFace({ card }: { card: NonNullable<CardType> }) {
         }}
       >
         <span className="text-white font-bold text-xs drop-shadow">DOUBLE</span>
-        <div
-          className="w-6 h-6 rounded-full border-2 border-white/70"
-          style={{ background: bgColor }}
-        />
-        <div
-          className="w-6 h-6 rounded-full border-2 border-white/70"
-          style={{ background: bgColor }}
-        />
+        <div className="w-6 h-6 rounded-full border-2 border-white/70" style={{ background: bgColor }} />
+        <div className="w-6 h-6 rounded-full border-2 border-white/70" style={{ background: bgColor }} />
         <span className="text-white font-bold text-xs drop-shadow">{label}</span>
       </div>
     )
@@ -93,46 +87,70 @@ function CardBack() {
 }
 
 export default function DrawnCard({ card }: DrawnCardProps) {
-  const [flipped, setFlipped] = useState(false)
+  // `displayCard` is what's currently rendered on the card face — swapped while edge-on.
   const [displayCard, setDisplayCard] = useState<NonNullable<CardType> | null>(null)
+  const controls = useAnimation()
+
+  // Track the most recently requested card and whether a flip is in flight.
+  const latestCardRef = useRef<NonNullable<CardType> | null>(null)
+  const isFlippingRef  = useRef(false)
 
   useEffect(() => {
-    if (card) {
-      setFlipped(false)
-      const timer = setTimeout(() => {
-        setDisplayCard(card)
-        setFlipped(true)
-      }, 120)
-      return () => clearTimeout(timer)
-    } else {
-      setFlipped(false)
+    if (!card) {
+      // Card cleared (shouldn't happen mid-game, but guard it)
+      latestCardRef.current = null
       setDisplayCard(null)
+      controls.set({ rotateY: 0 })
+      isFlippingRef.current = false
+      return
     }
+
+    latestCardRef.current = card
+
+    // If a flip is already running it will pick up latestCardRef when it finishes.
+    if (isFlippingRef.current) return
+
+    const runFlip = async () => {
+      isFlippingRef.current = true
+      try {
+        // ── Phase 1: tilt the current face away (0° → 90°) ──────────────────────
+        await controls.start({
+          rotateY: 90,
+          transition: { duration: 0.38, ease: 'easeIn' },
+        })
+        // ── Swap content while the card is edge-on ───────────────────────────────
+        const next = latestCardRef.current
+        latestCardRef.current = null
+        setDisplayCard(next)
+        // ── Jump to −90° (other side of edge-on, invisible) ──────────────────────
+        controls.set({ rotateY: -90 })
+        // ── Phase 2: swing the new face toward the viewer (−90° → 0°) ───────────
+        await controls.start({
+          rotateY: 0,
+          transition: { duration: 0.50, ease: 'easeOut' },
+        })
+      } finally {
+        isFlippingRef.current = false
+        // If another card arrived during the flip, run again immediately.
+        if (latestCardRef.current) runFlip()
+      }
+    }
+
+    runFlip()
+  // `controls` is a stable object ref returned by useAnimation() — it never changes
+  // between renders, so omitting it from the dependency array is safe and intentional.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card])
 
-  if (!card) return <CardBack />
-
   return (
-    <div style={{ perspective: 600 }} className="w-20 h-28">
+    // perspective gives the 3D depth cue for the Y rotation
+    <div style={{ perspective: 800 }} className="w-20 h-28">
       <motion.div
-        animate={{ rotateY: flipped ? 0 : 180 }}
-        transition={{ duration: 1.2, ease: 'easeOut' }}
-        style={{ transformStyle: 'preserve-3d', position: 'relative', width: '100%', height: '100%' }}
+        animate={controls}
+        initial={{ rotateY: 0 }}
+        style={{ width: '100%', height: '100%' }}
       >
-        <div style={{ backfaceVisibility: 'hidden', position: 'absolute', width: '100%', height: '100%' }}>
-          {displayCard ? <CardFace card={displayCard} /> : <CardBack />}
-        </div>
-        <div
-          style={{
-            backfaceVisibility: 'hidden',
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            transform: 'rotateY(180deg)',
-          }}
-        >
-          <CardBack />
-        </div>
+        {displayCard ? <CardFace card={displayCard} /> : <CardBack />}
       </motion.div>
     </div>
   )

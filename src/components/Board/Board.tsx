@@ -513,54 +513,67 @@ function PlayerToken({
           <ellipse rx={TOKEN_RADIUS * 0.75} ry={4} cy={TOKEN_RADIUS + 2} fill="rgba(0,0,0,0.40)" />
 
           {/* ── Walking limbs (arms + legs) — rendered BEHIND body so body covers joints ── */}
-          {/* Left arm – pivot at left shoulder (top-right of line bounding box) */}
-          <motion.g
-            style={{ transformBox: 'fill-box', transformOrigin: '100% 0%' }}
-            animate={isWalking ? { rotate: [-35, 35, -35] } : { rotate: 0 }}
-            transition={walkSpeed}
-          >
-            <line
-              x1={-(TOKEN_RADIUS + 1)} y1={0}
-              x2={-(TOKEN_RADIUS + 9)} y2={13}
-              stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round"
-            />
-          </motion.g>
-          {/* Right arm – pivot at right shoulder */}
-          <motion.g
-            style={{ transformBox: 'fill-box', transformOrigin: '0% 0%' }}
-            animate={isWalking ? { rotate: [35, -35, 35] } : { rotate: 0 }}
-            transition={walkSpeed}
-          >
-            <line
-              x1={(TOKEN_RADIUS + 1)} y1={0}
-              x2={(TOKEN_RADIUS + 9)} y2={13}
-              stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round"
-            />
-          </motion.g>
-          {/* Left leg – pivot at left hip (top-right of line bounding box) */}
-          <motion.g
-            style={{ transformBox: 'fill-box', transformOrigin: '100% 0%' }}
-            animate={isWalking ? { rotate: [30, -30, 30] } : { rotate: 0 }}
-            transition={isWalking ? { ...walkSpeed, delay: 0.175 } : undefined}
-          >
-            <line
-              x1={-5} y1={TOKEN_RADIUS + 2}
-              x2={-9} y2={TOKEN_RADIUS + 15}
-              stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round"
-            />
-          </motion.g>
-          {/* Right leg – pivot at right hip */}
-          <motion.g
-            style={{ transformBox: 'fill-box', transformOrigin: '0% 0%' }}
-            animate={isWalking ? { rotate: [-30, 30, -30] } : { rotate: 0 }}
-            transition={isWalking ? { ...walkSpeed, delay: 0.175 } : undefined}
-          >
-            <line
-              x1={5} y1={TOKEN_RADIUS + 2}
-              x2={9} y2={TOKEN_RADIUS + 15}
-              stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round"
-            />
-          </motion.g>
+          {/*
+           * SVG rotation gotcha: Framer Motion computes transform-origin from its own
+           * `originX`/`originY` values (defaulting to 50%/50%) and silently overrides
+           * any `transformOrigin` CSS string set in `style`.
+           *
+           * Fix: wrap each limb in a static SVG <g> that translates the pivot point to
+           * (0, 0) of the group's coordinate space.  The inner motion.g then only needs
+           * originX/Y relative to the fill-box of its own <line>, which starts at (0,0).
+           *
+           *   Left-pointing limbs  (line 0,0 → −dx,dy):  fill-box right edge = x=0  → originX: 1
+           *   Right-pointing limbs (line 0,0 →  dx,dy):  fill-box left  edge = x=0  → originX: 0
+           *   Both:                                        fill-box top   edge = y=0  → originY: 0
+           */}
+
+          {/* Left arm — shoulder at (-(TOKEN_RADIUS+1), 0) */}
+          <g transform={`translate(${-(TOKEN_RADIUS + 1)}, 0)`}>
+            <motion.g
+              style={{ transformBox: 'fill-box', originX: 1, originY: 0 }}
+              animate={isWalking ? { rotate: [-35, 35, -35] } : { rotate: 0 }}
+              transition={walkSpeed}
+            >
+              <line x1={0} y1={0} x2={-8} y2={13}
+                stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round" />
+            </motion.g>
+          </g>
+
+          {/* Right arm — shoulder at (TOKEN_RADIUS+1, 0) */}
+          <g transform={`translate(${TOKEN_RADIUS + 1}, 0)`}>
+            <motion.g
+              style={{ transformBox: 'fill-box', originX: 0, originY: 0 }}
+              animate={isWalking ? { rotate: [35, -35, 35] } : { rotate: 0 }}
+              transition={walkSpeed}
+            >
+              <line x1={0} y1={0} x2={8} y2={13}
+                stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round" />
+            </motion.g>
+          </g>
+
+          {/* Left leg — hip at (-5, TOKEN_RADIUS+2) */}
+          <g transform={`translate(-5, ${TOKEN_RADIUS + 2})`}>
+            <motion.g
+              style={{ transformBox: 'fill-box', originX: 1, originY: 0 }}
+              animate={isWalking ? { rotate: [30, -30, 30] } : { rotate: 0 }}
+              transition={isWalking ? { ...walkSpeed, delay: 0.175 } : undefined}
+            >
+              <line x1={0} y1={0} x2={-4} y2={13}
+                stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round" />
+            </motion.g>
+          </g>
+
+          {/* Right leg — hip at (5, TOKEN_RADIUS+2) */}
+          <g transform={`translate(5, ${TOKEN_RADIUS + 2})`}>
+            <motion.g
+              style={{ transformBox: 'fill-box', originX: 0, originY: 0 }}
+              animate={isWalking ? { rotate: [-30, 30, -30] } : { rotate: 0 }}
+              transition={isWalking ? { ...walkSpeed, delay: 0.175 } : undefined}
+            >
+              <line x1={0} y1={0} x2={4} y2={13}
+                stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round" />
+            </motion.g>
+          </g>
 
           {/* Pulsing ring for active player */}
           {isCurrentPlayer && (
