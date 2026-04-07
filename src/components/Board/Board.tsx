@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useMotionValue, useSpring, useAnimation } from 'framer-motion'
 import {
   boardMatrix,
@@ -14,6 +14,8 @@ interface BoardProps {
   players: Player[]
   playerCount: number
   currentPlayer: number
+  /** Called with true when any player starts walking, false when all are idle */
+  onAnimatingChange?: (animating: boolean) => void
 }
 
 // ─── Visual constants ─────────────────────────────────────────────────────────
@@ -327,6 +329,23 @@ function GummyToken({ color }: { color: string }) {
 
 const TOKEN_SHAPES = [GingerbreadToken, PeppermintToken, LollipopToken, GummyToken]
 
+// ─── Staging area: 2×2 grid to the LEFT of boardMatrix[0] ────────────────────
+// boardMatrix[0] is at { top: 945, left: 110 }.  The staging area sits to its
+// left so all players are visible from game start (position = -1).
+const STAGING_POSITIONS: [number, number][] = [
+  [30, 925],   // Player 0 – top-left
+  [68, 925],   // Player 1 – top-right
+  [30, 963],   // Player 2 – bottom-left
+  [68, 963],   // Player 3 – bottom-right
+]
+
+/** Walk-step interval in ms — shorter when the gap is large so the game stays snappy */
+function stepDelay(distance: number): number {
+  if (distance <= 15) return 130
+  if (distance <= 35) return 65
+  return 28
+}
+
 // ─── Player Token ─────────────────────────────────────────────────────────────
 function PlayerToken({
   player,
@@ -334,38 +353,117 @@ function PlayerToken({
   playerCount,
   isCurrentPlayer,
   dx,
-  dy,
+  onWalkingChange,
 }: {
   player: Player
   index: number
   playerCount: number
   isCurrentPlayer: boolean
-  /** Horizontal offset when sharing a square with other players */
+  /** Horizontal spread offset when multiple players share the same square */
   dx: number
-  /** Vertical offset when sharing a square with other players */
-  dy: number
+  onWalkingChange: (walking: boolean) => void
 }) {
-  // Show at START (boardMatrix[0]) when player hasn't moved yet (position = -1)
-  const displayPos = Math.max(0, player.position)
-  const sq = displayPos < boardMatrix.length ? boardMatrix[displayPos] : null
+  // ── helpers ─────────────────────────────────────────────────────────────────
+  function getCoords(pos: number, offsetX = 0): { x: number; y: number } {
+    if (pos < 0) {
+      const [sx, sy] = STAGING_POSITIONS[index] ?? STAGING_POSITIONS[0]!
+      return { x: sx, y: sy }
+    }
+    const sq = boardMatrix[pos]
+    return sq ? { x: sq.left + offsetX, y: sq.top } : { x: -300, y: -300 }
+  }
 
-  // Centre on the square, then apply the sharing offset
-  const targetX = sq ? sq.left + dx : -200
-  const targetY = sq ? sq.top  + dy : -200
+  // ── motion values ────────────────────────────────────────────────────────────
+  const initCoords = getCoords(player.position)
+  const motionX = useMotionValue(initCoords.x)
+  const motionY = useMotionValue(initCoords.y)
+  const springX = useSpring(motionX, { stiffness: 180, damping: 22 })
+  const springY = useSpring(motionY, { stiffness: 180, damping: 22 })
 
-  const motionX = useMotionValue(targetX)
-  const motionY = useMotionValue(targetY)
-  const springX = useSpring(motionX, { stiffness: 110, damping: 20 })
-  const springY = useSpring(motionY, { stiffness: 110, damping: 20 })
-
-  // Fired imperatively so a 4.5× burst plays once when this player's turn starts
   const scaleCtrl = useAnimation()
+  const [isWalking, setIsWalking] = useState(false)
 
+  // Mutable refs to avoid stale closures inside setTimeout callbacks
+  const prevPosRef   = useRef(player.position)
+  const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dxRef        = useRef(dx)
+  useEffect(() => { dxRef.current = dx }, [dx])
+
+  // ── step-by-step movement ────────────────────────────────────────────────────
   useEffect(() => {
-    motionX.set(targetX)
-    motionY.set(targetY)
-  }, [targetX, targetY, motionX, motionY])
+    const from = prevPosRef.current
+    const to   = player.position
+    prevPosRef.current = to
 
+    // Cancel any in-progress walk
+    if (stepTimerRef.current !== null) {
+      clearTimeout(stepTimerRef.current)
+      stepTimerRef.current = null
+    }
+
+    if (from === to) {
+      // Same position — just keep dx up to date
+      const { x, y } = getCoords(to, dxRef.current)
+      motionX.set(x)
+      motionY.set(y)
+      return
+    }
+
+    // Backward jumps (licorice trap → back to start): teleport quickly
+    if (to < from && from >= 0 && from - to > 8) {
+      const { x, y } = getCoords(to, dxRef.current)
+      motionX.set(x)
+      motionY.set(y)
+      setIsWalking(false)
+      onWalkingChange(false)
+      return
+    }
+
+    // Forward walk: step one square at a time
+    const distance = Math.abs(to - from)
+    const delay = stepDelay(distance)
+    let current = from
+
+    setIsWalking(true)
+    onWalkingChange(true)
+
+    const advance = () => {
+      if (current < to) {
+        current++
+      }
+      const atDestination = current >= to
+      const offsetX = atDestination ? dxRef.current : 0
+      const { x, y } = getCoords(current, offsetX)
+      motionX.set(x)
+      motionY.set(y)
+
+      if (!atDestination) {
+        stepTimerRef.current = setTimeout(advance, delay)
+      } else {
+        setIsWalking(false)
+        onWalkingChange(false)
+      }
+    }
+
+    stepTimerRef.current = setTimeout(advance, delay)
+
+    return () => {
+      if (stepTimerRef.current !== null) clearTimeout(stepTimerRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player.position])
+
+  // When dx changes while idle, nudge to correct spread position
+  useEffect(() => {
+    if (!isWalking) {
+      const { x, y } = getCoords(player.position, dx)
+      motionX.set(x)
+      motionY.set(y)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dx, isWalking])
+
+  // ── turn-start scale burst ────────────────────────────────────────────────────
   useEffect(() => {
     if (isCurrentPlayer) {
       scaleCtrl.start({
@@ -375,20 +473,21 @@ function PlayerToken({
     }
   }, [isCurrentPlayer, scaleCtrl])
 
-  // Off-screen placeholder still calls hooks — must return after hooks
+  // Hooks must always be called — return null AFTER hooks
   if (index >= playerCount) return null
 
-  const color = PLAYER_COLORS[index]
-  const TokenShape = TOKEN_SHAPES[index]
+  const color      = PLAYER_COLORS[index]!
+  const TokenShape = TOKEN_SHAPES[index]!
+  const walkSpeed  = isWalking ? { duration: 0.35, repeat: Infinity, ease: 'easeInOut' as const } : undefined
 
   return (
     <motion.g style={{ x: springX, y: springY }}>
-      {/* Scale-up burst when turn starts, centred on the token body */}
+      {/* Scale-up burst on turn start */}
       <motion.g animate={scaleCtrl} style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
-        {/* Idle float */}
+        {/* Idle float — paused while walking */}
         <motion.g
-          animate={{ y: [0, FLOAT_AMPLITUDE, 0] }}
-          transition={{
+          animate={isWalking ? { y: 0 } : { y: [0, FLOAT_AMPLITUDE, 0] }}
+          transition={isWalking ? {} : {
             duration: FLOAT_BASE_DURATION + index * FLOAT_DURATION_INC,
             repeat: Infinity,
             ease: 'easeInOut',
@@ -397,6 +496,56 @@ function PlayerToken({
         >
           {/* Drop shadow */}
           <ellipse rx={TOKEN_RADIUS * 0.75} ry={4} cy={TOKEN_RADIUS + 2} fill="rgba(0,0,0,0.40)" />
+
+          {/* ── Walking limbs (arms + legs) — rendered BEHIND body so body covers joints ── */}
+          {/* Left arm – pivot at left shoulder (top-right of line bounding box) */}
+          <motion.g
+            style={{ transformBox: 'fill-box', transformOrigin: '100% 0%' }}
+            animate={isWalking ? { rotate: [-35, 35, -35] } : { rotate: 0 }}
+            transition={walkSpeed}
+          >
+            <line
+              x1={-(TOKEN_RADIUS + 1)} y1={0}
+              x2={-(TOKEN_RADIUS + 9)} y2={13}
+              stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round"
+            />
+          </motion.g>
+          {/* Right arm – pivot at right shoulder */}
+          <motion.g
+            style={{ transformBox: 'fill-box', transformOrigin: '0% 0%' }}
+            animate={isWalking ? { rotate: [35, -35, 35] } : { rotate: 0 }}
+            transition={walkSpeed}
+          >
+            <line
+              x1={(TOKEN_RADIUS + 1)} y1={0}
+              x2={(TOKEN_RADIUS + 9)} y2={13}
+              stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round"
+            />
+          </motion.g>
+          {/* Left leg – pivot at left hip (top-right of line bounding box) */}
+          <motion.g
+            style={{ transformBox: 'fill-box', transformOrigin: '100% 0%' }}
+            animate={isWalking ? { rotate: [30, -30, 30] } : { rotate: 0 }}
+            transition={isWalking ? { ...walkSpeed, delay: 0.175 } : undefined}
+          >
+            <line
+              x1={-5} y1={TOKEN_RADIUS + 2}
+              x2={-9} y2={TOKEN_RADIUS + 15}
+              stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round"
+            />
+          </motion.g>
+          {/* Right leg – pivot at right hip */}
+          <motion.g
+            style={{ transformBox: 'fill-box', transformOrigin: '0% 0%' }}
+            animate={isWalking ? { rotate: [-30, 30, -30] } : { rotate: 0 }}
+            transition={isWalking ? { ...walkSpeed, delay: 0.175 } : undefined}
+          >
+            <line
+              x1={5} y1={TOKEN_RADIUS + 2}
+              x2={9} y2={TOKEN_RADIUS + 15}
+              stroke="rgba(255,255,255,0.85)" strokeWidth={4} strokeLinecap="round"
+            />
+          </motion.g>
 
           {/* Pulsing ring for active player */}
           {isCurrentPlayer && (
@@ -410,15 +559,14 @@ function PlayerToken({
             />
           )}
 
-          {/* Token body */}
+          {/* Token body (rendered on top of limbs so joints are hidden) */}
           <circle r={TOKEN_RADIUS + 2} fill={color} opacity={0.88} />
           <circle r={TOKEN_RADIUS + 2} fill="none" stroke="white" strokeWidth={1.8} opacity={0.55} />
-          {/* Subtle bottom shadow for depth */}
           <ellipse cx={0} cy={TOKEN_RADIUS * 0.7} rx={TOKEN_RADIUS * 0.8} ry={TOKEN_RADIUS * 0.25}
             fill="rgba(0,0,0,0.25)" />
           <TokenShape color={color} />
 
-          {/* Player initial label below token */}
+          {/* Player initial label */}
           <text
             textAnchor="middle" dominantBaseline="central"
             fontSize="8" fill="white" fontWeight="bold"
@@ -435,23 +583,37 @@ function PlayerToken({
 }
 
 // ─── Board ────────────────────────────────────────────────────────────────────
-export default function Board({ players, playerCount, currentPlayer }: BoardProps) {
-  const endSq = boardMatrix[boardMatrix.length - 1]
+export default function Board({
+  players,
+  playerCount,
+  currentPlayer,
+  onAnimatingChange,
+}: BoardProps) {
+  const endSq = boardMatrix[boardMatrix.length - 1]!
 
-  // Build position→[playerIndexes] so tokens on the same square spread horizontally
-  // Players at position -1 (pre-game) are treated as being at START (position 0)
+  // Count how many players are currently walking so we can expose isAnimating
+  const walkingCountRef = useRef(0)
+  const handleWalkingChange = useCallback((walking: boolean) => {
+    walkingCountRef.current = Math.max(0, walkingCountRef.current + (walking ? 1 : -1))
+    onAnimatingChange?.(walkingCountRef.current > 0)
+  }, [onAnimatingChange])
+
+  // Build position→[playerIndexes] for spread offset.
+  // Pre-game players (position = -1) are in staging, NOT at square 0, so exclude them.
   const squareGroups = new Map<number, number[]>()
   for (let i = 0; i < playerCount; i++) {
-    const pos = Math.max(0, players[i].position)
+    const pos = players[i].position
+    if (pos < 0) continue   // in staging — no square grouping needed
     squareGroups.set(pos, [...(squareGroups.get(pos) ?? []), i])
   }
 
-  function getOffset(playerIndex: number): { dx: number; dy: number } {
-    const pos = Math.max(0, players[playerIndex].position)
+  function getDx(playerIndex: number): number {
+    const pos = players[playerIndex].position
+    if (pos < 0) return 0   // staging position — no offset
     const group = squareGroups.get(pos) ?? [playerIndex]
     const N = group.length
     const rank = group.indexOf(playerIndex)
-    return { dx: (rank - (N - 1) / 2) * MULTI_SPACING, dy: 0 }
+    return (rank - (N - 1) / 2) * MULTI_SPACING
   }
 
   // Compute path points string once and reuse across all polylines
@@ -576,6 +738,21 @@ export default function Board({ players, playerCount, currentPlayer }: BoardProp
           )
         })}
 
+        {/* ── Staging area: quad grid to the left of START ── */}
+        <g opacity={0.75}>
+          <rect x={8} y={910} width={78} height={70} rx={8}
+            fill="rgba(255,215,0,0.10)" stroke="rgba(255,215,0,0.45)" strokeWidth={1.5}
+            strokeDasharray="5 3" />
+          <text x={47} y={905} textAnchor="middle" fontSize="9"
+            fill="#FFD700" fontWeight="bold" opacity={0.85}
+            stroke="rgba(0,0,0,0.5)" strokeWidth={0.5} paintOrder="stroke">READY</text>
+          {/* Mini grid dots */}
+          {STAGING_POSITIONS.map(([sx, sy], si) => (
+            <circle key={si} cx={sx} cy={sy} r={8}
+              fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.22)" strokeWidth={1} />
+          ))}
+        </g>
+
         {/* ── START / FINISH labels ── */}
         <text x={110} y={968} textAnchor="middle" fontSize="11" fill="#FFD700" fontWeight="bold" opacity={0.9}
           stroke="rgba(0,0,0,0.5)" strokeWidth={0.6} paintOrder="stroke">★ START</text>
@@ -597,20 +774,17 @@ export default function Board({ players, playerCount, currentPlayer }: BoardProp
         })}
 
         {/* ── Player tokens (on top of everything) ── */}
-        {players.map((player, i) => {
-          const { dx, dy } = getOffset(i)
-          return (
-            <PlayerToken
-              key={i}
-              player={player}
-              index={i}
-              playerCount={playerCount}
-              isCurrentPlayer={i === currentPlayer}
-              dx={dx}
-              dy={dy}
-            />
-          )
-        })}
+        {players.map((player, i) => (
+          <PlayerToken
+            key={i}
+            player={player}
+            index={i}
+            playerCount={playerCount}
+            isCurrentPlayer={i === currentPlayer}
+            dx={getDx(i)}
+            onWalkingChange={handleWalkingChange}
+          />
+        ))}
       </svg>
     </div>
   )

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Board from '../../components/Board/Board'
@@ -17,6 +17,7 @@ interface GameProps {
 
 export default function Game({ players, playerCount, currentPlayer, winner, gameOver, drawCard }: GameProps) {
   const navigate = useNavigate()
+  const [playerMoving, setPlayerMoving] = useState(false)
 
   useEffect(() => {
     if (gameOver) {
@@ -28,7 +29,12 @@ export default function Game({ players, playerCount, currentPlayer, winner, game
     <div className="flex flex-col xl:flex-row gap-6 items-start justify-center p-4 w-full">
       {/* Board */}
       <div className="flex-shrink-0">
-        <Board players={players} playerCount={playerCount} currentPlayer={currentPlayer} />
+        <Board
+          players={players}
+          playerCount={playerCount}
+          currentPlayer={currentPlayer}
+          onAnimatingChange={setPlayerMoving}
+        />
       </div>
 
       {/* Side panel */}
@@ -47,11 +53,11 @@ export default function Game({ players, playerCount, currentPlayer, winner, game
 
         <Button
           onClick={drawCard}
-          disabled={!!winner}
+          disabled={!!winner || playerMoving}
           variant="primary"
           className="w-full"
         >
-          🎴 Draw Card
+          {playerMoving ? '🚶 Moving…' : '🎴 Draw Card'}
         </Button>
 
         <div className="flex flex-col gap-3">
