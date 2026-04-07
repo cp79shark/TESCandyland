@@ -1,5 +1,9 @@
 # Welcome
 
+## Updated 
+
+Gave copilot a chance to one shot the update since this uses many old packages. It didn't, but the final work after steering it is good enough to commit.
+
 ## What is this?
 
 This is a personal-use, demonstration project created in an afternoon to help elementary school kids who are curious about more complex
